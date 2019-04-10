@@ -28,7 +28,12 @@ class Book extends Base
      */
     public function read($id = NULL)
     {
-        $query = "SELECT * FROM {$this->table_name} WHERE id = '{$id}'";
+        $query = '';
+        if (empty($id)) {
+            $query = "SELECT * FROM {$this->table_name}";
+        } else {
+            $query = "SELECT * FROM {$this->table_name} WHERE id = '{$id}'";
+        }
         $stmt = $this->getDBConnection()->prepare($query);
         $stmt->execute();
         return $stmt;
