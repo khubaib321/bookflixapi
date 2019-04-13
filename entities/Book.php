@@ -16,6 +16,17 @@ class Book extends Base
     {
         parent::__construct('books');
     }
+    
+    public function search($search) {
+        if (empty($search)) {
+            return [];
+        }
+        $query = "SELECT id, name, author, category, cover FROM books WHERE ";
+        $query .= "(name LIKE '%{$search}%') OR (author LIKE '%{$search}%') ";
+        $query .= "OR (category LIKE '%{$search}%') OR (description LIKE '%{$search}%')";
+        $result = $this->executeQuery($query);
+        return $result;
+    }
 
     protected function save()
     {

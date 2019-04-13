@@ -71,6 +71,15 @@ abstract class Base
         }
         return true;
     }
+    
+    // S
+    public function search($query)
+    {
+        if (empty($query)) {
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Returns table result in PDOStatement as array
