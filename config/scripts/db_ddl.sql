@@ -20,12 +20,14 @@ CREATE TABLE `users` (
     `email` VARCHAR(255),
     `phone1` VARCHAR(255),
     `phone2` VARCHAR(255),
-    PRIMARY KEY (`id`)
+    `last_login` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `date_registered` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`email`)
 )  ENGINE=INNODB;
 
 CREATE TABLE `user_readings` (
     `id` CHAR(36) NOT NULL,
-    `user_id` CHAR(36),
+    `user_email` VARCHAR(255),
     `book_id` CHAR(36),
     `page_no` INT(9),
     `date_added` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -34,7 +36,7 @@ CREATE TABLE `user_readings` (
 
 CREATE TABLE `user_books` (
     `id` CHAR(36) NOT NULL,
-    `user_id` CHAR(36),
+    `user_email` VARCHAR(255),
     `book_id` CHAR(36),
     `date_added` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
