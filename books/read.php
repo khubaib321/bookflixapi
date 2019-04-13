@@ -8,6 +8,11 @@ $mode = filter_input(INPUT_GET, 'mode', FILTER_SANITIZE_STRING);
 $bookID = filter_input(INPUT_GET, 'book_id', FILTER_SANITIZE_STRING);
 $deviceID = filter_input(INPUT_GET, 'device_id', FILTER_SANITIZE_STRING);
 $userEmail = filter_input(INPUT_GET, 'user_email', FILTER_SANITIZE_STRING);
+$firstLoad = filter_input(INPUT_GET, 'first_load', FILTER_SANITIZE_STRING);
+$safetyGap = filter_input(INPUT_GET, 'gap_to_safety', FILTER_SANITIZE_STRING);
+$retrievePage = filter_input(INPUT_GET, 'retrieve_page', FILTER_SANITIZE_STRING);
+
+$firstLoad = ($firstLoad == 'true') ? true : false;
 
 if (!in_array($mode, ['view', 'read', 'list'])) {
     echo json_encode(
@@ -23,19 +28,34 @@ $book = new Book();
 $stmt = $book->read(empty($bookID), $bookID);
 $count = $stmt->rowCount();
 
+$readingNowIndex = 0;
 $lastRecord = $book->recordExists('user_readings', ['user_email' => $user->email, 'book_id' => $bookID], 'page_no DESC', true);
-$offset = 0;
-if ($lastRecord && ((int) $lastRecord['page_no'] > 0)) {
-    $offset = ((int) $lastRecord['page_no']) - 1;
+if ($lastRecord && ((int) $lastRecord['page_no'] > 1)) {
+    $readingNowIndex = ((int) $lastRecord['page_no']) - 1;
 }
-const MAX_PAGES = 7;
+
+$fromIndex = $toIndex = ((int) $retrievePage) - 1;
+if ($firstLoad) {
+    if ($readingNowIndex === 0) {
+        $fromIndex = 0;
+        $toIndex = $safetyGap;
+    } else {
+        $fromIndex = ($readingNowIndex - $safetyGap) < 0 ? 0 : $readingNowIndex - $safetyGap;
+        $toIndex = ($fromIndex === 0) ? $safetyGap : $readingNowIndex + $safetyGap;
+    }
+}
+
+//error_log('----------');
+//error_log("FROM => {$fromIndex}");
+//error_log("TO => {$toIndex}");
+//error_log('----------');
 
 if ($count > 0) {
     $books = array();
     $books['body'] = array();
     $books['count'] = $count;
     $books['content'][$bookID] = array();
-    $books['page_no'] = ($lastRecord) ? $offset + 1 : 0;    // if record found then at user is at page 1, else page 0
+    $books['page_no'] = ($lastRecord) ? $lastRecord['page_no'] : 0;    // if record found then user is reading page 1 at least, otherwise 0 meaning never read this book
 
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         extract($row);
@@ -44,9 +64,7 @@ if ($count > 0) {
         // get pdf content
         $pdfPath = __DIR__ . "/../ebooks/{$bookID}.pdf";
         if ($mode === 'read' && !empty($userEmail)) {
-            $start = empty($offset) ? 0 : (int) $offset;
-            $limit = $start + MAX_PAGES;
-            for ($i = $start; $i < $limit; ++$i) {
+            for ($i = $fromIndex; $i <= $toIndex; ++$i) {
                 $mpdf = new Mpdf\Mpdf();
                 $pagecount = $mpdf->setSourceFile($pdfPath);
 
@@ -54,7 +72,7 @@ if ($count > 0) {
                     $tplId = $mpdf->ImportPage($i + 1);
                     $mpdf->useTemplate($tplId);
                     $pdfString = $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
-                    array_push($books['content'][$bookID], ['pageLength' => strlen($pdfString), 'pageData' => base64_encode($pdfString)]);
+                    array_push($books['content'][$bookID], ['pageLength' => strlen($pdfString), 'pageData' => base64_encode($pdfString), 'pageIndex' => $i]);
                 } else {
                     break;
                 }

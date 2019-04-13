@@ -3,11 +3,31 @@
 class DB
 {
 
+    private $ENV = 0;
     private $host = "localhost";
     private $username = "root";
     private $password = "";
     private $database = "bookflix0";
     private static $connection = NULL;
+
+    public function __construct()
+    {
+        if ($this->ENV === 1) {
+            require 'credentails/prod.php';
+        } else {
+            require 'credentails/local.php';
+        }
+        // load credentials according to environment
+        if (isset($dbCredentials) &&
+            !empty($dbCredentials) &&
+            is_array($dbCredentials)
+        ) {
+            $this->host = $dbCredentials['host'];
+            $this->username = $dbCredentials['username'];
+            $this->password = $dbCredentials['password'];
+            $this->database = $dbCredentials['database'];
+        }
+    }
 
     // get the database connection
     public function getConnection()
